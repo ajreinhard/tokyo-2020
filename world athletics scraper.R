@@ -1,37 +1,8 @@
-setwd('C:/Users/rei1740/Desktop/Anthony/tokyo')
-source('https://github.com/ajreinhard/data-viz/raw/master/ggplot/plot_SB.R')
-library(RJSONIO)
 library(tidyverse)
 library(rvest)
-library(magrittr)
 
-ath_json <- fromJSON('athletes.json')
-basic_athlete_fields <- names(ath_json$data$searchAthletes[[1]])[c(1,5:6,8,10:12,16:17)]
-
-athlete_df <- lapply(ath_json$data$searchAthletes, function(x) x[basic_athlete_fields]) %>%
-  bind_rows %>% 
-  rename(competitorId = id, fullName = name, WA_Id = competitorId_WA) %>% 
-  mutate(
-    competitorId = as.numeric(competitorId),
-    birthDate = as.Date(birthDate)
-  )
-
-entry_df <- lapply(ath_json$data$searchAthletes, function(x) {
-  lapply(x$competitionEntries, function(y) {
-      bind_cols(y['competitorId'], eventName = y$discipline$name)
-    })
-  }) %>%
-  bind_rows
-
-event_df <- lapply(ath_json$data$searchAthletes, function(x) {
-  lapply(x$competitionEntries, function(y) {
-      y$discipline[-c(1:3,20:22)]
-    })
-  }) %>%
-  bind_rows %>%
-  distinct %>% 
-  rename(eventName = name, eventOrder = order)
-
+### function to get all annual results for a single athlete in all events
+### return NULL if there are no results for that year
 get_results_by_year <- function(ath_id, year = 2021) {
   
   result_page <- 'https://www.worldathletics.org/data/GetCompetitorResultsByYearHtml?' %>% 
@@ -59,7 +30,7 @@ get_results_by_year <- function(ath_id, year = 2021) {
       Race = ifelse(Race == 'FALSE', 'F', Race),
       Cat = as.character(Cat),
       Cat = ifelse(Cat == 'FALSE', 'F', Cat),
-      Pl. = as.numeric(Pl.),
+      Pl. = as.character(Pl.),
       Result = as.character(Result),
       Wind = as.character(Wind)
     ) %>%
@@ -67,39 +38,132 @@ get_results_by_year <- function(ath_id, year = 2021) {
   
 }
 
-get_results_by_year(14916212, 2017)
+### use function above to get multiple years
+get_full_results_multiple_years <- function(ath_id, years = 2017:2021) {
+  lapply(years, function(y) get_results_by_year(ath_id, y)) %>%
+    bind_rows %>% 
+    return
+}
 
-athlete_df %>% 
-  filter(lastName == 'FELIX') %>% 
-  view
+### use World Athletics dbs to get all the endpoints
+athlete_df <- readRDS('data/athletes.rds')
+entry_df <- readRDS('data/entry.rds')
 
+### scrape all results during this olympic cycle
+### this should take just under two hours
 comp_df <- athlete_df %>% 
   left_join(entry_df) %>% 
-  filter(eventName == '100 Metres') %>% 
   pull(WA_Id) %>% 
-  lapply(., get_results_by_year) %>%
-  bind_rows
+  unique %>%
+  lapply(., get_full_results_multiple_years) %>%
+  bind_rows %>% 
+  tibble
 
-comp_df %>%
+# look for places that might have been NA'd
+comp_df %>% filter(is.na(Pl.) & !is.na(as.numeric(Result)))
+comp_df$Race %>% table
+comp_df %>% filter(is.na(as.numeric(Result)))
+
+### work on cleaning up the big competition df (better col names/cleaner fields)
+clean_comp_df <- comp_df %>%
   separate(Result, into = c('hours','mins','secs'), fill = 'left', sep = ':') %>% 
   mutate(
     hours = ifelse(is.na(hours), 0, hours),
     mins = ifelse(is.na(mins), 0, mins),
-    Result = as.numeric(hours) * 3600 + as.numeric(mins) * 60 + as.numeric(secs)
+    secs = gsub('h','', secs),
+    notes = case_when(
+      secs %in% c('NM','DNF','NH') ~ 'DNF',
+      !is.na(as.numeric(secs)) ~ 'None',
+      secs %in% c('-','VST') ~ Remark,
+      secs == '' ~ 'None',
+      T ~ secs
+    ),
+    notes = ifelse(notes == 'None', NA, notes),
+    mark = as.numeric(hours) * 3600 + as.numeric(mins) * 60 + as.numeric(secs),
+    Wind = as.numeric(trimws(gsub('\\+','',Wind))),
+    Date = as.Date(Date, format = '%d %b %Y')
   ) %>% 
-  filter(Event == '100 Metres') %>% 
+  select(-c(hours, mins, secs, Remark)) %>% 
+  rename(compDate = Date, compName = Competition, eventName = Event, compCountry = Cnt., compCat = Cat, compHeat = Race, compPlace = Pl., wind = Wind)
+  
+saveRDS(clean_comp_df, 'data/competitions.rds')
+
+
+clean_comp_df %>% 
+  group_by(eventName) %>% 
+  summarise(n = n()) %>% view
+
+
+
+
+### jitter plot for event
+clean_comp_df %>% 
+  filter(Event == 'Pole Vault') %>% 
   group_by(WA_Id) %>% 
-  mutate(SB_Result = min(Result, na.rm = T)) %>% 
-  filter(SB_Result <= 11.1) %>% 
+  mutate(SB_Result = max(Result, na.rm = T)) %>% 
+  #filter(SB_Result > 6.5) %>% 
   ungroup %>% 
-  arrange(-SB_Result) %>% 
+  arrange(SB_Result) %>% 
   mutate(WA_Id = factor(WA_Id, unique(WA_Id))) %>% 
   #filter(Race == 'F') %>% 
   ggplot(aes(y = WA_Id, x = Result)) +
   geom_jitter(width = 0, height = 0.15) +
-  scale_x_reverse(limit = c(11.5, NA))
+  geom_text(aes(x = SB_Result * 1.01, label = paste0(lastName, ' (', countryCode, ')'), hjust = 0))
+  #scale_x_reverse(limit = c(11.5, NA))
   
 
-event_df %>% 
-  select(eventName) %>% 
-  print(n = 100)
+
+
+
+
+
+### starting work on h2h matrix
+athlete_comp <- comp_df %>% 
+  filter(year >= 2020) %>% 
+  left_join(athlete_df) %>% 
+  select(Date, Competition, Cat, Race, Event, WA_Id, Pl.)
+
+athlete_comp %>% 
+  left_join(athlete_comp, by = c('Date', 'Competition', 'Cat', 'Race', 'Event'), suffix = c('', '_opp')) %>% 
+  filter(WA_Id != WA_Id_opp) %>% 
+  group_by(WA_Id, WA_Id_opp) %>% 
+  summarise(
+    matchups = n(),
+    wins = sum(ifelse(Pl. < Pl._opp, 1, 0), na.rm = T),
+    win_pct = wins / matchups
+  ) %>% 
+  ungroup %>% 
+  filter(WA_Id == 14679502) %>% 
+  view
+  
+### career graph
+athlete_df %>% filter(firstName == 'Shelly-Ann') %>% left_join(entry_df) %>% select(fullName, WA_Id, eventName)
+career_df <- get_full_results_multiple_years(14285680, 1998:2021)
+
+career_df %>% 
+  left_join(athlete_df) %>% 
+  #filter(is.na(as.numeric(Result)))
+  filter(Event == '100 Metres') %>% 
+  mutate(
+    Date = as.Date(Date, format = '%d %b %Y'),
+    age = (Date - birthDate) / 365.25,
+    Result = as.numeric(Result),
+    weight = ifelse(Race == 'F', 1, 0.5)
+  ) %>% 
+  ggplot(aes(x = age, y = Result, weight = weight)) +
+  geom_point() +
+  geom_smooth()
+
+
+### csv with athlete name & multiple results only for just olympic event
+### indoor indicator
+### figure out cat & race meaning
+### investigate place
+### order events by what is being measured and more being better
+### find a way to import schedules
+### use flags and get country colors
+### create full career scraper
+### what does wind mean/what is legal wind
+### finish h2h and career scraper
+### find out who is on mixed relay team
+### shelly-ann had h next to one time. Also some blank results and places
