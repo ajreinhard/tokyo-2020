@@ -1,5 +1,6 @@
 library(tidyverse)
 library(rvest)
+library(magrittr)
 
 ### function to get all annual results for a single athlete in all events
 ### return NULL if there are no results for that year
@@ -39,7 +40,7 @@ get_results_by_year <- function(ath_id, year = 2021) {
 }
 
 ### use function above to get multiple years
-get_full_results_multiple_years <- function(ath_id, years = 2017:2021) {
+get_full_results_multiple_years <- function(ath_id, years = 2016:2021) {
   lapply(years, function(y) get_results_by_year(ath_id, y)) %>%
     bind_rows %>% 
     return
@@ -63,6 +64,7 @@ comp_df <- athlete_df %>%
 comp_df %>% filter(is.na(Pl.) & !is.na(as.numeric(Result)))
 comp_df$Race %>% table
 comp_df %>% filter(is.na(as.numeric(Result)))
+comp_df %>% pull(Remark) %>% table
 
 ### work on cleaning up the big competition df (better col names/cleaner fields)
 clean_comp_df <- comp_df %>%
@@ -83,8 +85,8 @@ clean_comp_df <- comp_df %>%
     Wind = as.numeric(trimws(gsub('\\+','',Wind))),
     Date = as.Date(Date, format = '%d %b %Y')
   ) %>% 
-  select(-c(hours, mins, secs, Remark)) %>% 
-  rename(compDate = Date, compName = Competition, eventName = Event, compCountry = Cnt., compCat = Cat, compHeat = Race, compPlace = Pl., wind = Wind)
+  select(-c(hours, mins, secs)) %>% 
+  rename(compDate = Date, compName = Competition, eventName = Event, compCountry = Cnt., compCat = Cat, compHeat = Race, compPlace = Pl., wind = Wind, remark = Remark)
   
 saveRDS(clean_comp_df, 'data/competitions.rds')
 
