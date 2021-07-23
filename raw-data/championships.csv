@@ -1,0 +1,34 @@
+compVenue,compStart,compEnd,compType,compEdition
+"Olympic Stadium, Helsinki (FIN)",1983-08-07,1983-08-14,World Championship,1
+"Stadio Olimpico, Roma (ITA)",1987-08-28,1987-09-06,World Championship,2
+"Olympic Stadium, Tokyo (JPN)",1991-08-23,1991-09-01,World Championship,3
+"Gottlieb-Daimler Stadion, Stuttgart (GER)",1993-08-13,1993-08-22,World Championship,4
+"Ullevi Stadium, Göteborg (SWE)",1995-08-05,1995-08-13,World Championship,5
+"Olympic Stadium, Athina (GRE)",1997-08-01,1997-08-10,World Championship,6
+"La Cartuja, Sevilla (ESP)",1999-08-20,1999-08-29,World Championship,7
+"Commonwealth Stadium, Edmonton (CAN)",2001-08-03,2001-08-12,World Championship,8
+"Stade de France, Paris-St-Denis (FRA)",2003-08-23,2003-08-31,World Championship,9
+"Olympic Stadium, Helsinki (FIN)",2005-08-06,2005-08-14,World Championship,10
+"Yanmar Stadium Nagai, Osaka (JPN)",2007-08-24,2007-09-02,World Championship,11
+"Olympiastadion, Berlin (GER)",2009-08-15,2009-08-23,World Championship,12
+"DS, Daegu (KOR)",2011-08-27,2011-09-04,World Championship,13
+"Luzhniki, Moskva (RUS)",2013-08-10,2013-08-18,World Championship,14
+"National Stadium, Beijing (CHN)",2015-08-22,2015-08-30,World Championship,15
+"Olympic Stadium, London (GBR)",2017-08-04,2017-08-13,World Championship,16
+"Khalifa International Stadium, Doha (QAT)",2019-09-27,2019-10-06,World Championship,17
+"Stadio Olimpico, Roma (ITA)",1960-08-31,1960-09-08,Olympics,17
+"National Stadium, Tokyo (JPN)",1964-10-10,1964-10-24,Olympics,18
+"Estadio Olímpico, Ciudad de México (MEX)",1968-10-12,1968-10-27,Olympics,19
+"Olympiastadion, München (GER)",1972-08-26,1972-09-11,Olympics,20
+"Olympic Stadium, Montréal (CAN)",1976-07-17,1976-08-01,Olympics,21
+"Lenin Stadium, Moskva (URS)",1980-07-24,1980-08-01,Olympics,22
+"Memorial Coliseum, Los Angeles, CA (USA)",1984-07-28,1984-08-12,Olympics,23
+"Olympic Stadium, Jamsil, Seoul (KOR)",1988-09-17,1988-10-02,Olympics,24
+"Estadio Olímpico, Barcelona (ESP)",1992-07-31,1992-08-09,Olympics,25
+"Olympic Stadium, Atlanta, GA (USA)",1996-07-26,1996-08-03,Olympics,26
+"Olympic Stadium, Sydney (AUS)",2000-09-15,2000-10-01,Olympics,27
+"Olympic Stadium, Athina (GRE)",2004-08-18,2004-08-29,Olympics,28
+"National Stadium, Beijing (CHN)",2008-08-15,2008-08-24,Olympics,29
+"Olympic Stadium, London (GBR)",2012-08-03,2012-08-12,Olympics,30
+"Estádio Olímpico, Rio de Janeiro (BRA)",2016-08-12,2016-08-21,Olympics,31
+"National Stadium, Tokyo (JPN)",2021-07-30,2021-08-08,Olympics,32
