@@ -60,6 +60,10 @@ comp_df <- athlete_df %>%
   bind_rows %>% 
   tibble
 
+
+saveRDS(comp_df, 'raw-data/raw-competitions.rds')
+
+
 # look for places that might have been NA'd
 comp_df %>% filter(is.na(Pl.) & !is.na(as.numeric(Result)))
 comp_df$Race %>% table
