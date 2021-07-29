@@ -2,5 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-.mp4
-.Rproj
+*.mp4
+*.Rproj
+.gitattributes
