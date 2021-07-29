@@ -1,33 +1,69 @@
-library(jsonlite)
 library(tidyverse)
+library(rvest)
 library(magrittr)
 
-### take JSON file from World Athletics and create tables for Olympic Athletes
-### save all of the tables
-ath_json <- jsonlite::fromJSON('raw-data/athletes2.json')
+### function to get all annual results for a single athlete in all events
+### return NULL if there are no results for that year
+get_results_by_year <- function(ath_id, year = 2021) {
+  
+  result_page <- 'https://www.worldathletics.org/data/GetCompetitorResultsByYearHtml?' %>% 
+    paste0(., 'resultsByYear=', year, '&resultsByYearOrderBy=date&aaId=', ath_id) %>% 
+    read_html
+  
+  results_header <- result_page %>% 
+    html_nodes(xpath = '//th/@data-th-value') %>% 
+    html_text
+  
+  if (result_page %>% html_table %>% is_empty) {return(NULL)}
+  
+  results_table <- result_page %>% 
+    html_table %>% 
+    extract2(1)
+  
+  names(results_table) <- results_header
+  if (sum(grepl('Wind', results_header)) == 0) results_table <- results_table %>% mutate(Wind = NA)
+  
+  results_table %>% 
+    mutate(
+      WA_Id = ath_id,
+      year = year,
+      Race = as.character(Race),
+      Race = ifelse(Race == 'FALSE', 'F', Race),
+      Cat = as.character(Cat),
+      Cat = ifelse(Cat == 'FALSE', 'F', Cat),
+      Pl. = as.character(Pl.),
+      Result = as.character(Result),
+      Wind = as.character(Wind)
+    ) %>%
+    return
+  
+}
 
-athlete_df <- ath_json$data$searchAthletes[c(1,5:6,8,10:12,16:17)] %>% 
-  rename(competitorId = id, fullName = name, WA_Id = competitorId_WA) %>% 
-  mutate(
-    competitorId = as.numeric(competitorId),
-    birthDate = as.Date(birthDate)
-  ) %>% 
-  as_tibble
+### use function above to get multiple years
+get_full_results_multiple_years <- function(ath_id, years = 2016:2021) {
+  lapply(years, function(y) get_results_by_year(ath_id, y)) %>%
+    bind_rows %>% 
+    return
+}
 
-competitorId <- ath_json$data$searchAthletes$competitionEntries %>% bind_rows %>% select(competitorId, sexCode)
-eventName <- ath_json$data$searchAthletes$competitionEntries %>% bind_rows %>% pull(discipline) %>% pull(name)
-entry_df <- tibble(competitorId, eventName)
+### use World Athletics dbs to get all the endpoints
+athlete_df <- readRDS('data/athletes.rds')
+entry_df <- readRDS('data/entry.rds')
 
-event_df <- ath_json$data$searchAthletes$competitionEntries %>%
-  bind_rows %>%
-  pull(discipline) %>%
-  .[-c(1:3,20:22)] %>% 
-  distinct %>% 
-  rename(eventName = name, eventOrder = order) %>% 
-  inner_join(entry_df %>% select(sexCode, eventName) %>% distinct)
+### scrape all results during this olympic cycle
+### this should take just under two hours
+comp_df <- athlete_df %>% 
+  left_join(entry_df) %>% 
+  pull(WA_Id) %>% 
+  unique %>%
+  lapply(., get_full_results_multiple_years) %>%
+  bind_rows %>% 
+  tibble
 
 
-comp_df <- readRDS(url('https://raw.githubusercontent.com/ajreinhard/tokyo-2020/main/raw-data/raw-competitions.rds'))
+saveRDS(comp_df, 'raw-data/raw-competitions.rds')
+
+comp_df <- readRDS('raw-data/raw-competitions.rds')
 
 comp_df %>% 
   group_by(Remark) %>%
@@ -151,15 +187,3 @@ comp_df %>%
     legalWind, remark, meetsWAStandards, isHandtimed, isIndoor, compCat, compPlace, compCountry, raceStage, raceOrder 
   ) %>% 
   saveRDS('olympian-performances.rds')
-  
-athlete_df %>% 
-  left_join(entry_df, by = 'competitorId', suffix = c('Athlete','')) %>% 
-  left_join(event_df) %>% 
-  filter(countryCode == 'USA' & eventName == '4x400 Metres Relay') %>% 
-  view
-  
-
-
-
-
-

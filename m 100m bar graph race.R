@@ -284,15 +284,6 @@ body(animate_SB) <- body(animate_SB) %>%
   as.call()
 
 
-
-
-
-inc_cnt <- monthly_top20 %>% pull(countryCode) %>% unique
-
-
-inc_cnt[!(inc_cnt %in% color_df$countryCode)]
-
-
 top_df %>% 
   filter(compYrMo < 201612) %>% 
   view
@@ -316,19 +307,5 @@ monthly_top20 %>%
     uni_ath = n()
   ) %>% 
   filter(evalYrMo >= 196806) %>% 
-  view
-
-
-
-
-comp_df <- readRDS(url('https://raw.githubusercontent.com/ajreinhard/tokyo-2020/main/data/competitions.rds'))
-
-comp_df %>% pull(remark) %>% table %>% sort
-
-comp_df %>% 
-  left_join(athlete_df) %>% 
-  filter(remark == 'ST') %>% 
-  arrange(desc(compDate)) %>% 
-  select(compDate, WA_Id, fullName, compName, eventName, mark, remark) %>% 
   view
 
