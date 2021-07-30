@@ -64,6 +64,7 @@ comp_df <- athlete_df %>%
 saveRDS(comp_df, 'raw-data/raw-competitions.rds')
 
 comp_df <- readRDS('raw-data/raw-competitions.rds')
+comp_df <- readRDS('data/athletes.rds')
 
 comp_df %>% 
   group_by(Remark) %>%
@@ -124,7 +125,6 @@ comp_df %>%
   select(-c(hours, mins, secs)) %>% 
   rename(compDate = Date, compName = Competition, eventName = Event, compCountry = Cnt., compCat = Cat, compHeat = Race, compPlace = Pl., wind = Wind, remark = Remark)
 
- library(lubridate)
   
 comp_df %>% 
   separate(Result, into = c('hours','mins','secs'), fill = 'left', sep = ':', remove = F) %>% 
@@ -186,4 +186,20 @@ comp_df %>%
     compDate, compName, WA_Id, fullName, firstName, lastName, sexCode, countryCode, eventName, markString, mark, measure, wind,
     legalWind, remark, meetsWAStandards, isHandtimed, isIndoor, compCat, compPlace, compCountry, raceStage, raceOrder 
   ) %>% 
-  saveRDS('olympian-performances.rds')
+  saveRDS('data/olympian-performances.rds')
+
+
+
+### make an easy CSV
+perf_df <- readRDS('data/olympian-performances.rds')
+entry_df <- readRDS('data/entry.rds')
+athlete_df <- readRDS('data/athletes.rds')
+
+perf_df %>% 
+  left_join(athlete_df, by = 'WA_Id', suffix = c('','_ath')) %>% 
+  inner_join(entry_df) %>% 
+  select(names(perf_df)) %>% 
+  write.csv('data/olympian indy event performance.csv', row.names = F)
+  
+  
+
